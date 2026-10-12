@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conlang Phonology Builder</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+.phoneme-btn { min-width:36px; min-height:36px; font-family:'Segoe UI',sans-serif; }
+.phoneme-btn.active { background:#7c3aed; color:white; }
+.phoneme-btn:not(.active) { background:#1e1b4b; color:#a5b4fc; }
+.phoneme-btn:hover:not(.active) { background:#312e81; }
+</style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen p-4">
+<div class="max-w-5xl mx-auto">
+  <h1 class="text-2xl font-bold text-violet-400 mb-1">Conlang Phonology Builder</h1>
+  <p class="text-gray-400 text-sm mb-5">Build a phoneme inventory and generate sample words for your constructed language.</p>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <div class="lg:col-span-2 space-y-5">
+      <!-- Vowels -->
+      <div class="bg-gray-900 border border-gray-700 rounded-xl p-4">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="font-semibold text-violet-300">Vowels (IPA)</h2>
+          <div class="flex gap-2">
+            <button onclick="selectAll('vowels')" class="text-xs text-violet-400 hover:text-violet-300 border border-violet-800 px-2 py-0.5 rounded">All</button>
+            <button onclick="clearAll('vowels')" class="text-xs text-gray-400 hover:text-gray-300 border border-gray-700 px-2 py-0.5 rounded">None</button>
+          </div>
+        </div>
+        <div class="text-xs text-gray-500 mb-2">Height: Close → Open (top to bottom) | Backness: Front → Back (left to right)</div>
+        <div id="vowelChart" class="space-y-1"></div>
+      </div>
+
+      <!-- Consonants -->
+      <div class="bg-gray-900 border border-gray-700 rounded-xl p-4">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="font-semibold text-violet-300">Consonants (IPA)</h2>
+          <div class="flex gap-2">
+            <button onclick="selectAll('consonants')" class="text-xs text-violet-400 hover:text-violet-300 border border-violet-800 px-2 py-0.5 rounded">All</button>
+            <button onclick="clearAll('consonants')" class="text-xs text-gray-400 hover:text-gray-300 border border-gray-700 px-2 py-0.5 rounded">None</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table id="consonantTable" class="text-sm min-w-max"></table>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-5">
+      <!-- Syllable Template -->
+      <div class="bg-gray-900 border border-gray-700 rounded-xl p-4">
+        <h2 class="font-semibold text-violet-300 mb-3">Syllable Structure</h2>
+        <div class="space-y-3 text-sm">
+          <div>
+            <label class="block text-gray-400 mb-1">Onset consonants (max)</label>
+            <select id="onsetMax" class="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 focus:outline-none focus:border-violet-400">
+              <option value="0">0 (V only)</option>
+              <option value="1" selected>1 (CV)</option>
+              <option value="2">2 (CCV)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-gray-400 mb-1">Nucleus vowels</label>
+            <select id="nucleusMax" class="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 focus:outline-none focus:border-violet-400">
+              <option value="1" selected>1 vowel</option>
+              <option value="2">Diphthong (2 vowels)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-gray-400 mb-1">Coda consonants (max)</label>
+            <select id="codaMax" class="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 focus:outline-none focus:border-violet-400">
+              <option value="0" selected>0 (open syllable)</option>
+              <option value="1">1 (CVC)</option>
+              <option value="2">2 (CVCC)</option>
+            </select>
+          </div>
+        </div>
+        <div class="mt-3 text-xs text-gray-400 bg-gray-800 rounded p-2">
+          Template: <span id="templateDisplay" class="text-violet-300 font-mono">CV</span>
+        </div>
+      </div>
+
+      <!-- Inventory Summary -->
+      <div class="bg-gray-900 border border-gray-700 rounded-xl p-4">
+        <h2 class="font-semibold text-violet-300 mb-2">Inventory</h2>
+        <div class="text-sm text-gray-300 space-y-1">
+          <div>Vowels: <span id="vowelCount" class="text-violet-300 font-bold">0</span></div>
+          <div>Consonants: <span id="consonantCount" class="text-violet-300 font-bold">0</span></div>
+          <div class="text-xs text-gray-500 mt-2" id="selectedVowels"></div>
+          <div class="text-xs text-gray-500" id="selectedConsonants"></div>
+        </div>
+      </div>
+
+      <!-- Word Generator -->
+      <div class="bg-gray-900 border border-gray-700 rounded-xl p-4">
+        <h2 class="font-semibold text-violet-300 mb-3">Word Generator</h2>
+        <div class="flex gap-2 mb-3">
+          <div class="flex-1">
+            <label for="syllableCount" class="text-xs text-gray-400 block mb-1">Syllables/word</label>
+            <select id="syllableCount" class="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-violet-400">
+              <option value="1">1</option>
+              <option value="2" selected>2</option>
+              <option value="3">3</option>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <button onclick="generateWords()" class="bg-violet-600 hover:bg-violet-500 text-white px-4 py-1.5 rounded text-sm font-semibold transition">Generate</button>
+          </div>
+        </div>
+        <div id="wordList" class="space-y-1 text-sm"></div>
+      </div>
+
+      <!-- Export -->
+      <div class="bg-gray-900 border border-gray-700 rounded-xl p-4">
+        <h2 class="font-semibold text-violet-300 mb-2">Export Inventory</h2>
+        <button onclick="exportInventory()" class="w-full bg-gray-700 hover:bg-gray-600 text-gray-200 px-3 py-2 rounded text-sm transition">Copy to Clipboard</button>
+        <pre id="exportText" class="text-xs text-gray-400 mt-2 whitespace-pre-wrap break-all max-h-32 overflow-y-auto"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// IPA Vowel chart: rows = height, cols = backness
+const VOWEL_ROWS = [
+  { label:'Close',    phonemes:[['i','y'],['ɨ','ʉ'],['ɯ','u']] },
+  { label:'Close-mid',phonemes:[['e','ø'],['',''],['ɤ','o']] },
+  { label:'Open-mid', phonemes:[['ɛ','œ'],['',''],['ʌ','ɔ']] },
+  { label:'Open',     phonemes:[['a','æ'],['',''],['ɑ','ɒ']] },
+];
+const VOWEL_COL_LABELS = ['Front','Central','Back'];
+
+const CONSONANT_PLACES = ['Bilabial','Labiodent.','Dental','Alveolar','Palatal','Velar','Glottal'];
+const CONSONANT_MANNERS = [
+  { label:'Plosive',    data:['p b','','','t d','','k g','ʔ'] },
+  { label:'Nasal',      data:['m','','','n','ɲ','ŋ',''] },
+  { label:'Trill',      data:['ʙ','','','r','','',''] },
+  { label:'Fricative',  data:['','f v','θ ð','s z','ʃ ʒ','x ɣ','h'] },
+  { label:'Affricate',  data:['','','','ts dz','tʃ dʒ','',''] },
+  { label:'Approximant',data:['w','','','l','j','',''] },
+  { label:'Lateral',    data:['','','','l r','ʎ','',''] },
+];
+
+let inventory = { vowels: new Set(), consonants: new Set() };
+
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function buildVowelChart() {
+  const container = document.getElementById('vowelChart');
+  container.innerHTML = '';
+
+  // Header
+  const headerRow = document.createElement('div');
+  headerRow.className = 'flex gap-1 mb-1';
+  headerRow.innerHTML = '<div class="w-20 text-xs text-gray-500"></div>';
+  VOWEL_COL_LABELS.forEach(l => {
+    headerRow.innerHTML += `<div class="flex-1 text-center text-xs text-gray-500">${l}</div>`;
+  });
+  container.appendChild(headerRow);
+
+  VOWEL_ROWS.forEach(row => {
+    const div = document.createElement('div');
+    div.className = 'flex items-center gap-1';
+    div.innerHTML = `<div class="w-20 text-xs text-gray-500 shrink-0">${row.label}</div>`;
+    row.phonemes.forEach(pair => {
+      const cell = document.createElement('div');
+      cell.className = 'flex-1 flex gap-1 justify-center';
+      pair.forEach(ph => {
+        if (!ph) { cell.innerHTML += '<div class="w-8"></div>'; return; }
+        const btn = document.createElement('button');
+        btn.className = 'phoneme-btn rounded text-sm ' + (inventory.vowels.has(ph) ? 'active' : '');
+        btn.textContent = ph;
+        btn.title = ph + ' (vowel)';
+        btn.setAttribute('aria-label', `Toggle vowel ${ph}`);
+        btn.setAttribute('aria-pressed', inventory.vowels.has(ph).toString());
+        btn.onclick = () => togglePhoneme('vowels', ph, btn);
+        cell.appendChild(btn);
+      });
+      div.appendChild(cell);
+    });
+    container.appendChild(div);
+  });
+}
+
+function buildConsonantTable() {
+  const table = document.getElementById('consonantTable');
+  table.innerHTML = '';
+
+  // Header
+  const head = document.createElement('tr');
+  head.innerHTML = '<th class="text-left text-xs text-gray-500 pr-3 py-1 font-normal">Manner ↓ / Place →</th>';
+  CONSONANT_PLACES.forEach(p => {
+    head.innerHTML += `<th class="text-center text-xs text-gray-500 px-1 py-1 font-normal">${p}</th>`;
+  });
+  table.appendChild(head);
+
+  CONSONANT_MANNERS.forEach(manner => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="text-xs text-gray-500 pr-3 py-1 whitespace-nowrap">${manner.label}</td>`;
+    manner.data.forEach(cell => {
+      const td = document.createElement('td');
+      td.className = 'text-center px-1 py-0.5';
+      if (!cell) { tr.appendChild(td); return; }
+      cell.split(' ').forEach(ph => {
+        if (!ph) return;
+        const btn = document.createElement('button');
+        btn.className = 'phoneme-btn rounded text-xs mx-0.5 ' + (inventory.consonants.has(ph) ? 'active' : '');
+        btn.textContent = ph;
+        btn.title = ph + ' (consonant)';
+        btn.setAttribute('aria-label', `Toggle consonant ${ph}`);
+        btn.setAttribute('aria-pressed', inventory.consonants.has(ph).toString());
+        btn.onclick = () => togglePhoneme('consonants', ph, btn);
+        td.appendChild(btn);
+      });
+      tr.appendChild(td);
+    });
+    table.appendChild(tr);
+  });
+}
+
+function togglePhoneme(type, ph, btn) {
+  if (inventory[type].has(ph)) {
+    inventory[type].delete(ph);
+    btn.className = btn.className.replace(' active','');
+    btn.setAttribute('aria-pressed','false');
+  } else {
+    inventory[type].add(ph);
+    if (!btn.className.includes('active')) btn.className += ' active';
+    btn.setAttribute('aria-pressed','true');
+  }
+  updateSummary();
+  updateTemplate();
+}
+
+function selectAll(type) {
+  if (type === 'vowels') {
+    VOWEL_ROWS.forEach(row => row.phonemes.forEach(pair => pair.forEach(ph => { if(ph) inventory.vowels.add(ph); })));
+    buildVowelChart();
+  } else {
+    CONSONANT_MANNERS.forEach(m => m.data.forEach(c => c.split(' ').forEach(ph => { if(ph) inventory.consonants.add(ph); })));
+    buildConsonantTable();
+  }
+  updateSummary();
+}
+
+function clearAll(type) {
+  inventory[type].clear();
+  if (type === 'vowels') buildVowelChart(); else buildConsonantTable();
+  updateSummary();
+}
+
+function updateSummary() {
+  document.getElementById('vowelCount').textContent = inventory.vowels.size;
+  document.getElementById('consonantCount').textContent = inventory.consonants.size;
+  document.getElementById('selectedVowels').textContent = 'V: ' + [...inventory.vowels].join(' ');
+  document.getElementById('selectedConsonants').textContent = 'C: ' + [...inventory.consonants].join(' ');
+}
+
+function updateTemplate() {
+  const onset = parseInt(document.getElementById('onsetMax').value);
+  const nucleus = parseInt(document.getElementById('nucleusMax').value);
+  const coda = parseInt(document.getElementById('codaMax').value);
+  let t = '';
+  if (onset === 2) t += '(C)C';
+  else if (onset === 1) t += '(C)';
+  t += nucleus === 2 ? 'VV' : 'V';
+  if (coda === 2) t += '(C)(C)';
+  else if (coda === 1) t += '(C)';
+  document.getElementById('templateDisplay').textContent = t;
+}
+
+['onsetMax','nucleusMax','codaMax'].forEach(id => document.getElementById(id).addEventListener('change', updateTemplate));
+
+function randItem(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function generateSyllable() {
+  const v = [...inventory.vowels];
+  const c = [...inventory.consonants];
+  if (v.length === 0) return '?';
+  const onset = parseInt(document.getElementById('onsetMax').value);
+  const nucleus = parseInt(document.getElementById('nucleusMax').value);
+  const coda = parseInt(document.getElementById('codaMax').value);
+
+  let syl = '';
+  const onsetCount = c.length > 0 ? Math.floor(Math.random() * (onset + 1)) : 0;
+  for (let i = 0; i < onsetCount; i++) syl += randItem(c);
+  const nucCount = nucleus === 2 && Math.random() > 0.5 ? 2 : 1;
+  for (let i = 0; i < nucCount; i++) syl += randItem(v);
+  const codaCount = c.length > 0 ? Math.floor(Math.random() * (coda + 1)) : 0;
+  for (let i = 0; i < codaCount; i++) syl += randItem(c);
+  return syl;
+}
+
+function generateWords() {
+  const count = parseInt(document.getElementById('syllableCount').value);
+  if (inventory.vowels.size === 0) {
+    document.getElementById('wordList').innerHTML = '<div class="text-red-400">Select at least one vowel first.</div>';
+    return;
+  }
+  const words = [];
+  for (let i = 0; i < 20; i++) {
+    let w = '';
+    for (let s = 0; s < count; s++) w += generateSyllable();
+    words.push(w);
+  }
+  const list = document.getElementById('wordList');
+  list.innerHTML = '';
+  words.forEach(w => {
+    const div = document.createElement('div');
+    div.className = 'bg-gray-800 rounded px-2 py-1 font-mono text-violet-200';
+    div.textContent = w;
+    list.appendChild(div);
+  });
+}
+
+function exportInventory() {
+  const onset = parseInt(document.getElementById('onsetMax').value);
+  const nucleus = parseInt(document.getElementById('nucleusMax').value);
+  const coda = parseInt(document.getElementById('codaMax').value);
+  const text = `CONLANG PHONEME INVENTORY
+========================
+Vowels (${inventory.vowels.size}): ${[...inventory.vowels].join(' ')}
+Consonants (${inventory.consonants.size}): ${[...inventory.consonants].join(' ')}
+
+Syllable Template: ${document.getElementById('templateDisplay').textContent}
+Onset: max ${onset} consonant(s)
+Nucleus: ${nucleus} vowel(s)
+Coda: max ${coda} consonant(s)`;
+
+  document.getElementById('exportText').textContent = text;
+  navigator.clipboard?.writeText(text).catch(()=>{});
+}
+
+// Init with a small default inventory
+['a','e','i','o','u'].forEach(v => inventory.vowels.add(v));
+['p','t','k','m','n','s','l'].forEach(c => inventory.consonants.add(c));
+
+buildVowelChart();
+buildConsonantTable();
+updateSummary();
+updateTemplate();
+</script>
+</body>
+</html>
